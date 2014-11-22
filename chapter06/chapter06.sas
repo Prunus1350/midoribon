@@ -11,7 +11,7 @@ data data4a;
 run;
 
 proc sgplot data = data4a;
-    scatter x = x y = y / group = f;
+    scatter x = x y = y / group = f markerattrs = (symbol=circlefilled);
 run;
 
 * みどりぼんの結果に合わせて変数の順番を指定する ;
@@ -57,7 +57,17 @@ proc genmod data = data4a;
 run;
 
 * P127 フルモデル ;
+data data4a2;
+    set data4a;
+    id = put(_n_, best.);
+run;
 
+proc genmod data = data4a2;
+    class id;
+    model y / n = id / dist = binomial
+                       link = logit
+    ;
+run;
 
 * 128 交互作用の入った線形予測子 ;
 proc genmod data = data4a;
