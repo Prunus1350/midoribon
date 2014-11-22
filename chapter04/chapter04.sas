@@ -35,7 +35,7 @@ proc genmod data = d2;
 run;
 
 * P75 一定モデル ;
-proc genmod data = d2;
+proc genmod data = d;
     model y = / dist = poisson
                 link = log;
 run;
