@@ -79,7 +79,7 @@ run;
 
 * P20 図2.4 平均λ=3.56のポアソン分布 ;
 proc sgplot data = pois;
-    series x = y y = prob / markers lineattrs=(pattern=dash);
+    series x = y y = prob / markers lineattrs　=　(pattern=dash);
 run;
 
 
@@ -229,12 +229,7 @@ run;
         %let lambda = %sysevalf(&i. / 10);
         data __m1;
             set data;
-            s = 0;
-            do i = 1 to y;
-                *s = sum(s, log(i));
-                s + log(i);
-            end;
-            log_l = y * log(&lambda.) - &lambda. - s;
+            log_l = y * log(&lambda.) - &lambda. - log(fact(y));
         run;
         
         proc summary data = __m1;
@@ -252,11 +247,35 @@ run;
         
     %end;
 
-    * P28 図2.8 対数尤度　 ;
-    proc sgplot data = log_likelihood;
-        series x = lambda y = log_l;
+    proc genmod data = data;
+        model y = / dist = poisson
+                    link = id;
+        ods output parameterestimates = __m10;
     run;
     
+    data _null_;
+        set __m10;
+        if parameter eq "Intercept" then call symput("est_param", compress(put(estimate, best.)));
+    run;
+    
+    proc sql noprint;
+        select max(log_l), min(log_l) into :maxy, :miny from log_likelihood;
+    quit;
+    
+    data sganno;
+        retain function "line" drawspace "datavalue" linepattern "dash";
+        x1 = &est_param.;
+        x2 = &est_param.;
+        y1 = &miny.;
+        y2 = &maxy.;
+        output;
+    run;
+
+    * P28 図2.8 対数尤度　 ;
+    proc sgplot data = log_likelihood sganno = sganno;
+        series x = lambda y = log_l;
+    run;
+
 %mend m2_8;
 
 %m2_8;
