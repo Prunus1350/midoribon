@@ -79,7 +79,7 @@ run;
 
 * P20 図2.4 平均λ=3.56のポアソン分布 ;
 proc sgplot data = pois;
-    series x = y y = prob / markers lineattrs　=　(pattern=dash);
+    series x = y y = prob / markers lineattrs = (pattern=dash);
 run;
 
 
@@ -128,94 +128,80 @@ proc sgplot data = pois2;
     yaxis label = "prob";
 run;
 
-data data4;
-    set data2;
-    prob1 = pdf("poisson", y, 2.0) * 50;
-    prob2 = pdf("poisson", y, 2.4) * 50;
-    prob3 = pdf("poisson", y, 2.8) * 50;
-    prob4 = pdf("poisson", y, 3.2) * 50;
-    prob5 = pdf("poisson", y, 3.6) * 50;
-    prob6 = pdf("poisson", y, 4.0) * 50;
-    prob7 = pdf("poisson", y, 4.4) * 50;
-    prob8 = pdf("poisson", y, 4.8) * 50;
-    prob9 = pdf("poisson", y, 5.2) * 50;
-run;
+%macro m2_7;
 
-proc template;
-    define statgraph poisson_graph;
-        begingraph;
-            layout lattice / rows = 3 columns = 3;
-                layout overlay;
-                    barchart x = y y = count;
-                    seriesplot x = y y = prob1 /
-                        display = all
-                        markerattrs = (symbol=circle)
-                        lineattrs = (pattern=dash);
-                endlayout;
-                layout overlay;
-                    barchart x = y y = count;
-                    seriesplot x = y y = prob2 /
-                        display = all
-                        markerattrs = (symbol=circle)
-                        lineattrs = (pattern=dash);
-                endlayout;
-                layout overlay;
-                    barchart x = y y = count;
-                    seriesplot x = y y = prob3 /
-                        display = all
-                        markerattrs = (symbol=circle)
-                        lineattrs = (pattern=dash);
-                endlayout;
-                layout overlay;
-                    barchart x = y y = count;
-                    seriesplot x = y y = prob4 /
-                        display = all
-                        markerattrs = (symbol=circle)
-                        lineattrs = (pattern=dash);
-                endlayout;
-                layout overlay;
-                    barchart x = y y = count;
-                    seriesplot x = y y = prob5 /
-                        display = all
-                        markerattrs = (symbol=circle)
-                        lineattrs = (pattern=dash);
-                endlayout;
-                layout overlay;
-                    barchart x = y y = count;
-                    seriesplot x = y y = prob6 /
-                        display = all
-                        markerattrs = (symbol=circle)
-                        lineattrs = (pattern=dash);
-                endlayout;
-                layout overlay;
-                    barchart x = y y = count;
-                    seriesplot x = y y = prob7 /
-                        display = all
-                        markerattrs = (symbol=circle)
-                        lineattrs = (pattern=dash);
-                endlayout;
-                layout overlay;
-                    barchart x = y y = count;
-                    seriesplot x = y y = prob8 /
-                        display = all
-                        markerattrs = (symbol=circle)
-                        lineattrs = (pattern=dash);
-                endlayout;
-                layout overlay;
-                    barchart x = y y = count;
-                    seriesplot x = y y = prob9 /
-                        display = all
-                        markerattrs = (symbol=circle)
-                        lineattrs = (pattern=dash);
-                endlayout;
-            endlayout;
-        endgraph;
-    end;
-run;
+    * ポアソン分布のパラメータ ;
+    %let lambda1 = 2.0;
+    %let lambda2 = 2.4;
+    %let lambda3 = 2.8;
+    %let lambda4 = 3.2;
+    %let lambda5 = 3.6;
+    %let lambda6 = 4.0;
+    %let lambda7 = 4.4;
+    %let lambda8 = 4.8;
+    %let lambda9 = 5.2;
 
-* P26 図2.7 ;
-proc sgrender data = data4 template = poisson_graph;
-run;
+    data data4;
+        set data2;
+        %do i = 1 %to 9;
+            prob&i. = pdf("poisson", y, &&lambda&i..) * 50;
+        %end;
+    run;
+    
+    * パラメータ毎に対数尤度を計算 ;
+    data data5;
+        set data4;
+        %do i = 1 %to 9;
+            log_l&i. = (y * log(&&lambda&i..) - &&lambda&i.. - log(fact(y))) * count;
+        %end;
+    run;
+
+    * 対数尤度をマクロ変数に格納 ;
+    proc sql noprint;
+        select %do i = 1 %to 8;
+                   sum(log_l&i.) format = 8.1,
+               %end;
+               sum(log_l9) format = 8.1
+        into %do i = 1 %to 8;
+                 :log_l&i.,
+             %end;
+             :log_l9
+        from data5;
+    quit;
+
+    proc template;
+        define statgraph poisson_graph;
+            begingraph;
+                layout lattice / rows = 3 columns = 3;
+                    %do i = 1 %to 9;
+                        layout overlay / xaxisopts = (display=(tickvalues))
+                                         yaxisopts = (linearopts=(viewmin=0
+                                                                  viewmax=15
+                                                                  tickvaluelist=(0 5 10 15))
+                                                      display=(tickvalues));
+                            layout gridded / border = false halign = right valign = top;
+                                entry halign = left "lambda=&&lambda&i..";
+                                entry halign = left "log L=&&log_l&i..";
+                            endlayout;
+                            barchart x = y y = count;
+                            seriesplot x = y y = prob&i. /
+                                display = all
+                                markerattrs = (symbol=circle)
+                                lineattrs = (pattern=dash);
+                        endlayout;
+                    %end;
+                endlayout;
+            endgraph;
+        end;
+    run;
+    
+    * P26 図2.7 ;
+    proc sgrender data = data4 template = poisson_graph;
+    run;
+
+%mend m2_7;
+
+%m2_7;
 
 
 %macro m2_8;
@@ -316,13 +302,13 @@ run;
          
     %end;
     
-    ods html path = "&home_dir.";
+    ods html;
     ods listing;
 
 %mend mle_poisson;
 
-*%mle_poisson(lambda=3.56, rep=3000);
-%mle_poisson(lambda=3.56, rep=30);
+%mle_poisson(lambda=3.56, rep=3000);
+
 
 * P30 図2.9 ;
 proc sgplot data = __parameter;
