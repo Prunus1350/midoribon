@@ -94,20 +94,22 @@ proc sql noprint;
         from d;
 quit;
 
-data sganno;
-    retain function 'line' drawspace 'datavalue' linecolor 'orange';
-    x1 = &minx.;
-    x2 = &maxx.;
-    y1 = exp(&beta1. + &beta2. * &minx.);
-    y2 = exp(&beta1. + &beta2. * &maxx.);
-    output;
+data line3_7;
+    do x1 = &minx. to &maxx. by 0.1;
+        y1 = exp(&beta1. + &beta2. * x1);
+        output;
+    end;
+run;
+
+data d3_7;
+    set d line3_7;
 run;
 
 * P54 図3.7 ;
-proc sgplot data = d sganno = sganno;
+proc sgplot data = d3_7;
     scatter x = x y = y / group = f markerattrs = (symbol=circlefilled);
+    series x = x1 y = y1 / lineattrs=(color=orange);
 run;
-
 
 * P56 ;
 proc genmod data = d;
@@ -122,3 +124,4 @@ proc genmod data = d;
     model y = x f / dist = poisson
                     link = log;
 run;
+
