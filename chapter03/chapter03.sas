@@ -46,25 +46,11 @@ data data3_4;
     end;
 run;
 
-proc sql noprint;
-    select max(lambda1, lambda2) into :maxy from data3_4;
-quit;
-
-data sganno3_4;
-    function = "line";
-    drawspace = "datavalue";
-    linecolor = "orange";
-    linepattern = "dot";
-    x1 = 0;
-    x2 = 0;
-    y1 = 0;
-    y2 = &maxy.;
-run;
-
 * P48 図3.4 ;
-proc sgplot data = data3_4 sganno = sganno3_4;
+proc sgplot data = data3_4;
     series x = x y = lambda1 / lineattrs = (pattern=dash);
     series x = x y = lambda2;
+    refline 0 / axis = x lineattrs = (pattern=dot);
     xaxis label = "個体iの体のサイズx_i";
     yaxis label = "個体iのλ_i";
 run;
@@ -100,6 +86,7 @@ run;
 proc sgplot data = param3_6;
     series x = i y = beta1;
     series x = i y = beta2;
+    refline 0 / axis = x;
 run;
 
 proc sql noprint;
