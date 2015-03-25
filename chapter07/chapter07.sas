@@ -10,22 +10,28 @@ data d;
     input n y x id;
 run;
 
-* 個体数を表すためにデータ点をずらす ;
-data d2;
-    set d;
-    x = x + rand("normal", 0, 0.03);
+* P146 図7.2(B) ;
+proc sgplot data = d;
+    scatter x = x y = y / jitter;
 run;
 
-* P146 図7.2(B) ;
-proc sgplot data = d2;
-    scatter x = x y = y;
-run;
 
 * P147 二項分布を使った一般化線形モデル ;
 proc genmod data = d;
     model y / n = x / dist = binomial
-                      link = logit
-    ;
+                      link = logit;
+    ods output parameterestimates = param_est;
+run;
+
+data _null_;
+    set param_est;
+    if      parameter eq "Intercept" then call symputx("beta1", estimate);
+    else if parameter eq "x"         then call symputx("beta2", estimate);
+run;
+
+data _null_;
+    lambda1 = logistic(&beta1. + &beta2. * 4);
+    call symputx("lambda1", lambda1);
 run;
 
 proc freq data = d(where=(x eq 4));
@@ -34,7 +40,7 @@ run;
 
 data binomial;
     do y = 0 to 8;
-        predict = pdf("binomial", y, 0.47, 8) * 20;
+        predict = pdf("binomial", y, &lambda1., 8) * 20;
         output;
     end;
 run;
@@ -49,7 +55,7 @@ run;
 * P147 図7.3(B) ;
 proc sgplot data = d3;
     scatter x = y y = count;
-    series  x = y y = predict;
+    series  x = y y = predict / markers markerattrs = (symbol=circlefilled);
 run;
 
 
@@ -69,4 +75,10 @@ proc means data = d4 mean var;
     var y;
 run;
 
+* P159 一般化線形混合モデルのパラメータを推定 ;
+proc glimmix data = d method = quad;
+    class id;
+    model y / n = x / solution dist = binomial;
+    random intercept / subject = id;
+run;
 
